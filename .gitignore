@@ -3,6 +3,11 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+#other files
+test.db
+postman_collection/
+setup_for_postman.py
+
 # C extensions
 *.so
 
