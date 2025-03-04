@@ -7,11 +7,21 @@ SCOPES = [
     'https://www.googleapis.com/auth/spreadsheets',
     'https://www.googleapis.com/auth/drive',
 ]
+
+
+def get_private_key() -> str:
+    try:
+        with open('private_key.pem', 'r') as key_file:
+            return key_file.read()
+    except (FileNotFoundError, IOError):
+        return settings.private_key
+
+
 INFO = {
     'type': settings.type,
     'project_id': settings.project_id,
     'private_key_id': settings.private_key_id,
-    'private_key': settings.private_key,
+    'private_key': get_private_key(),
     'client_email': settings.client_email,
     'client_id': settings.client_id,
     'auth_uri': settings.auth_uri,
@@ -19,6 +29,7 @@ INFO = {
     'auth_provider_x509_cert_url': settings.auth_provider_x509_cert_url,
     'client_x509_cert_url': settings.client_x509_cert_url,
 }
+
 cred = ServiceAccountCreds(scopes=SCOPES, **INFO)
 
 

@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     app_description: str = (
         'Приложение для Благотворительного фонда поддержки котиков'
     )
-    database_url: str = 'sqlite+aiosqlite:///./qrkot.db'
+    database_url: str = 'sqlite+aiosqlite:///./qrkot_sh.db'
     secret: str = 'SECRET'
     first_superuser_email: Optional[EmailStr] = None
     first_superuser_password: Optional[str] = None
