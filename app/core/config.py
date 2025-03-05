@@ -1,6 +1,9 @@
+import logging
 from typing import Optional
 
 from pydantic import BaseSettings, EmailStr
+
+logger = logging.getLogger(__name__)
 
 
 class Settings(BaseSettings):
@@ -12,6 +15,7 @@ class Settings(BaseSettings):
     secret: str = 'SECRET'
     first_superuser_email: Optional[EmailStr] = None
     first_superuser_password: Optional[str] = None
+
     # Переменные для Google API
     type: Optional[str] = None
     project_id: Optional[str] = None
@@ -24,6 +28,14 @@ class Settings(BaseSettings):
     auth_provider_x509_cert_url: Optional[str] = None
     client_x509_cert_url: Optional[str] = None
     email: Optional[str] = None
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        try:
+            with open('private_key.pem', 'r') as key_file:
+                self.private_key = key_file.read()
+        except (FileNotFoundError, IOError):
+            pass
 
     class Config:
         env_file = '.env'

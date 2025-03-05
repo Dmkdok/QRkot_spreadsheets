@@ -6,17 +6,23 @@ from aiogoogle import Aiogoogle
 from app.core.config import settings
 from app.models.charity_project import CharityProject
 
-REPORT_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
+MAX_ROW_COUNT = 100
+MAX_COLUMN_COUNT = 4
+
+REPORT_DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
 
 SHEET_CONFIG = {
-    "properties": {"title": "Отчет QRKot", "locale": "ru_RU"},
-    "sheets": [
+    'properties': {'title': 'Отчет QRKot', 'locale': 'ru_RU'},
+    'sheets': [
         {
-            "properties": {
-                "sheetType": "GRID",
-                "sheetId": 0,
-                "title": "Закрытые проекты",
-                "gridProperties": {"rowCount": 100, "columnCount": 4},
+            'properties': {
+                'sheetType': 'GRID',
+                'sheetId': 0,
+                'title': 'Закрытые проекты',
+                'gridProperties': {
+                    'rowCount': MAX_ROW_COUNT,
+                    'columnCount': MAX_COLUMN_COUNT,
+                },
             }
         }
     ],
@@ -26,15 +32,15 @@ SHEET_CONFIG = {
 async def spreadsheets_create(wrapper_services: Aiogoogle) -> str:
     """Создает новую Google-таблицу и возвращает её идентификатор."""
     sheet_body = SHEET_CONFIG.copy()
-    sheet_body["properties"][
-        "title"
-    ] = f"QRKot Report {datetime.now().strftime(REPORT_DATE_FORMAT)}"
+    sheet_body['properties'][
+        'title'
+    ] = f'QRKot Report {datetime.now().strftime(REPORT_DATE_FORMAT)}'
 
-    sheets_service = await wrapper_services.discover("sheets", "v4")
+    sheets_service = await wrapper_services.discover('sheets', 'v4')
     response = await wrapper_services.as_service_account(
         sheets_service.spreadsheets.create(json=sheet_body)
     )
-    return response["spreadsheetId"]
+    return response['spreadsheetId']
 
 
 async def set_user_permissions(
@@ -45,15 +51,15 @@ async def set_user_permissions(
     для редактирования таблицы.
     """
     permission_body = {
-        "type": "user",
-        "role": "writer",
-        "emailAddress": settings.email,
+        'type': 'user',
+        'role': 'writer',
+        'emailAddress': settings.email,
     }
 
-    drive_service = await wrapper_services.discover("drive", "v3")
+    drive_service = await wrapper_services.discover('drive', 'v3')
     await wrapper_services.as_service_account(
         drive_service.permissions.create(
-            fileId=spreadsheet_id, json=permission_body, fields="id"
+            fileId=spreadsheet_id, json=permission_body, fields='id'
         )
     )
 
@@ -67,8 +73,8 @@ def format_duration(duration: timedelta) -> str:
     microseconds = duration.microseconds
     return (
         f"{days} day{'s' if days != 1 else ''}, "
-        f"{hours:02d}:{minutes:02d}:{remaining_seconds:02d}"
-        f".{microseconds:06d}"
+        f'{hours:02d}:{minutes:02d}:{remaining_seconds:02d}'
+        f'.{microseconds:06d}'
     )
 
 
@@ -78,14 +84,14 @@ async def spreadsheets_update_value(
     wrapper_services: Aiogoogle,
 ) -> None:
     """Заполняет таблицу данными о закрытых проектах."""
-    sheets_service = await wrapper_services.discover("sheets", "v4")
+    sheets_service = await wrapper_services.discover('sheets', 'v4')
 
     report_content = [
         [
-            "Отчет по закрытым проектам",
+            'Отчет по закрытым проектам',
             datetime.now().strftime(REPORT_DATE_FORMAT),
         ],
-        ["Название проекта", "Время сбора", "Описание"],
+        ['Название проекта', 'Время сбора', 'Описание'],
     ]
 
     for project in projects:
@@ -95,21 +101,18 @@ async def spreadsheets_update_value(
             report_content.append(
                 [project.name, duration_str, project.description]
             )
-
-            report_content.append(
-                [project.name, duration_str, project.description]
-            )
-
     total_rows = len(report_content)
-    if total_rows > 100:
-        raise ValueError("Превышено максимальное количество строк (100)")
+    if total_rows > MAX_ROW_COUNT:
+        raise ValueError(
+            f'Превышено максимальное количество строк {MAX_ROW_COUNT}.'
+        )
 
-    update_body = {"majorDimension": "ROWS", "values": report_content}
+    update_body = {'majorDimension': 'ROWS', 'values': report_content}
     await wrapper_services.as_service_account(
         sheets_service.spreadsheets.values.update(
             spreadsheetId=spreadsheet_id,
-            range=f"A1:C{total_rows}",
-            valueInputOption="USER_ENTERED",
+            range=f'A1:C{total_rows}',
+            valueInputOption='USER_ENTERED',
             json=update_body,
         )
     )
