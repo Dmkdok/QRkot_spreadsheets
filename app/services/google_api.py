@@ -10,6 +10,7 @@ MAX_ROW_COUNT = 100
 MAX_COLUMN_COUNT = 4
 
 REPORT_DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
+PROJECT_TIME_FORMAT = '%H:%M:%S'
 
 SHEET_CONFIG = {
     'properties': {'title': 'Отчет QRKot', 'locale': 'ru_RU'},
@@ -27,6 +28,17 @@ SHEET_CONFIG = {
         }
     ],
 }
+
+PERMISSION_BODY = {
+    'type': 'user',
+    'role': 'writer',
+    'emailAddress': settings.email,
+}
+
+REPORT_CONTENT_BASE = [
+    ['Отчет по закрытым проектам', None],
+    ['Название проекта', 'Время сбора', 'Описание'],
+]
 
 
 async def spreadsheets_create(wrapper_services: Aiogoogle) -> str:
@@ -50,31 +62,12 @@ async def set_user_permissions(
     Предоставляет права доступа вашему личному email
     для редактирования таблицы.
     """
-    permission_body = {
-        'type': 'user',
-        'role': 'writer',
-        'emailAddress': settings.email,
-    }
 
     drive_service = await wrapper_services.discover('drive', 'v3')
     await wrapper_services.as_service_account(
         drive_service.permissions.create(
-            fileId=spreadsheet_id, json=permission_body, fields='id'
+            fileId=spreadsheet_id, json=PERMISSION_BODY, fields='id'
         )
-    )
-
-
-def format_duration(duration: timedelta) -> str:
-    days = duration.days
-    seconds = duration.seconds
-    hours = seconds // 3600
-    minutes = (seconds % 3600) // 60
-    remaining_seconds = seconds % 60
-    microseconds = duration.microseconds
-    return (
-        f"{days} day{'s' if days != 1 else ''}, "
-        f'{hours:02d}:{minutes:02d}:{remaining_seconds:02d}'
-        f'.{microseconds:06d}'
     )
 
 
@@ -86,21 +79,23 @@ async def spreadsheets_update_value(
     """Заполняет таблицу данными о закрытых проектах."""
     sheets_service = await wrapper_services.discover('sheets', 'v4')
 
-    report_content = [
-        [
-            'Отчет по закрытым проектам',
-            datetime.now().strftime(REPORT_DATE_FORMAT),
-        ],
-        ['Название проекта', 'Время сбора', 'Описание'],
-    ]
+    report_content = [row.copy() for row in REPORT_CONTENT_BASE]
+    report_content[0][1] = datetime.now().strftime(REPORT_DATE_FORMAT)
 
     for project in projects:
         if project.close_date:
             duration = project.close_date - project.create_date
-            duration_str = format_duration(duration)
+            time_str = (
+                datetime(1970, 1, 1) + timedelta(seconds=duration.seconds)
+            ).strftime(PROJECT_TIME_FORMAT)
+            duration_str = (
+                f"{duration.days} day{'s' if duration.days != 1 else ''},"
+                f" {time_str}"
+            )
             report_content.append(
                 [project.name, duration_str, project.description]
             )
+
     total_rows = len(report_content)
     if total_rows > MAX_ROW_COUNT:
         raise ValueError(
