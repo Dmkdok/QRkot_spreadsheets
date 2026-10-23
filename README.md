@@ -15,8 +15,8 @@ QRKot — приложение для Благотворительного фо�
 
 1. **Клонирование репозитория**:
    ```bash
-   git clone https://github.com/yourusername/cat_charity_fund.git
-   cd cat_charity_fund
+   git clone https://github.com/Dmkdok/QRkot_spreadsheets.git
+   cd QRkot_spreadsheets
    ```
 
 2. **Создание виртуального окружения**:
